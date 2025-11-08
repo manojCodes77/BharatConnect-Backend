@@ -26,7 +26,7 @@ export const myPostsHandler: RequestHandler = async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.id; // safe cast
-    const posts = await Post.find({ authorId: userId }).populate('authorId', 'name email').populate('comments.userId', 'name');;
+    const posts = await Post.find({ authorId: userId }).populate('authorId', 'name email').populate('comments.userId', 'name').sort({ updatedAt: -1 });
     res.json(posts);
   } catch (error) {
     console.error("Error fetching user's posts:", error);
