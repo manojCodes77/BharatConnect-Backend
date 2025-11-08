@@ -8,11 +8,8 @@ const router = Router();
 
 
 router.post('/sign-up', signUpHandler);
-
 router.post('/sign-in', signInHandler);
-
-router.get('/:id', GetByIdHandler);
-
 router.get('/', listHandler);
+router.get('/:id', GetByIdHandler);
 
 export default router;
