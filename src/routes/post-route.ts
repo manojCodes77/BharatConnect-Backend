@@ -6,11 +6,15 @@ const router = Router();
 
 // Public routes (no auth required)
 router.get("/", listHandler);
+
+// Protected routes (auth required) - must come before /:id route
+router.get("/my-posts", verifyToken, myPostsHandler);
+router.post("/", verifyToken, createHandler);
+
+// Public route with parameter (must come after specific routes)
 router.get("/:id", getByIdHandler);
 
-// Protected routes (auth required)
-router.post("/", verifyToken, createHandler);
-router.get("/my-posts", verifyToken, myPostsHandler);
+// Protected routes with parameters
 router.put("/:id", verifyToken, UpdatePostByIdHandler);
 router.delete("/:id", verifyToken, deletePostByIdHandler);
 

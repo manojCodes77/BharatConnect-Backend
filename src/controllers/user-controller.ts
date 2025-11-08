@@ -18,7 +18,17 @@ export const signUpHandler:RequestHandler =  async (req, res) => {
         }
         const newUser = new User({ name, email, password });
         await newUser.save();
-        res.status(201).json({ message: 'User signed up' ,success: true});
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+        res.status(201).json({ 
+            message: 'User signed up',
+            token,
+            user: {
+                id: newUser._id,
+                name: newUser.name,
+                email: newUser.email
+            },
+            success: true
+        });
     } catch (error) {
         console.error("Error signing up user:", error);
         res.status(500).json({ message: 'Internal Server Error' ,success: false});
@@ -41,7 +51,15 @@ export const signInHandler:RequestHandler =  async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' ,success: false});
         }
         const token = jwt.sign({ id: existingUser._id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
-        res.json({ token ,success: true});
+        res.json({ 
+            token,
+            user: {
+                id: existingUser._id,
+                name: existingUser.name,
+                email: existingUser.email
+            },
+            success: true
+        });
     } catch (error) {
         console.error("Error signing in user:", error);
         res.status(500).json({ message: 'Internal Server Error' ,success: false});
