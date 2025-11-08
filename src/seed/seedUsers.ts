@@ -67,8 +67,13 @@ const seedUsers = async () => {
         await User.deleteMany({});
         console.log("Cleared existing users");
 
-        // Insert dummy users
-        await User.insertMany(dummyUsers);
+        // Insert dummy users with empty savedPosts array
+        const usersWithSavedPosts = dummyUsers.map(user => ({
+            ...user,
+            savedPosts: [], // Initialize empty savedPosts array
+        }));
+
+        await User.insertMany(usersWithSavedPosts);
         console.log(`${dummyUsers.length} dummy users inserted successfully`);
 
         // Disconnect

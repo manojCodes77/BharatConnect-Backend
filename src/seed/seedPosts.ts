@@ -77,18 +77,73 @@ const seedPosts = async () => {
         await Post.deleteMany({});
         console.log("Cleared existing posts");
 
-        // Assign posts to random users
+        // Assign posts to random users with interaction data
         const postsWithAuthors = dummyPosts.map((post) => {
             const randomUser = users[Math.floor(Math.random() * users.length)];
+            
+            // Generate random likes (2-15 users liking each post)
+            const numLikes = Math.floor(Math.random() * 14) + 2;
+            const likesSet = new Set<string>();
+            while (likesSet.size < Math.min(numLikes, users.length)) {
+                const randomLiker = users[Math.floor(Math.random() * users.length)];
+                likesSet.add(randomLiker._id.toString());
+            }
+            const likes = Array.from(likesSet);
+
+            // Generate random comments (0-5 comments per post)
+            const numComments = Math.floor(Math.random() * 6);
+            const comments = [];
+            const commentTexts = [
+                "Great insights! Thanks for sharing.",
+                "Congratulations! Well deserved.",
+                "This is really inspiring. Keep it up!",
+                "Totally agree with your perspective.",
+                "Would love to connect and discuss this further.",
+                "Amazing achievement! @Rahul what do you think?",
+                "This resonates with me. @Priya have you seen this?",
+                "Excellent point! Looking forward to more posts like this.",
+                "Congrats on this milestone!",
+                "Very informative. Thanks!",
+            ];
+
+            for (let i = 0; i < numComments; i++) {
+                const randomCommenter = users[Math.floor(Math.random() * users.length)];
+                const randomText = commentTexts[Math.floor(Math.random() * commentTexts.length)];
+                
+                // Randomly add mentions to some comments
+                const mentions = [];
+                if (Math.random() > 0.7) {
+                    const mentionedUser = users[Math.floor(Math.random() * users.length)];
+                    mentions.push(mentionedUser._id);
+                }
+
+                comments.push({
+                    userId: randomCommenter._id,
+                    text: randomText,
+                    mentions,
+                    createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random time in last 7 days
+                });
+            }
+
+            // Generate random shares (0-10)
+            const sharesCount = Math.floor(Math.random() * 11);
+
             return {
                 ...post,
                 authorId: randomUser._id,
+                likes,
+                likesCount: likes.length,
+                comments,
+                commentsCount: comments.length,
+                sharesCount,
+                createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Random time in last 30 days
+                updatedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
             };
         });
 
         // Insert dummy posts
         await Post.insertMany(postsWithAuthors);
-        console.log(`${postsWithAuthors.length} dummy posts inserted successfully`);
+        console.log(`${postsWithAuthors.length} dummy posts inserted successfully with interactions`);
 
         // Disconnect
         await mongoose.disconnect();
