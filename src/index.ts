@@ -1,4 +1,5 @@
 import express, {Express, Request, Response} from 'express';
+import cors from 'cors';
 import userRoutes from './routes/user-route';
 import postRoutes from './routes/post-route';
 import connectDB from './config/db';
@@ -8,6 +9,12 @@ dotenv.config();
 const app: Express = express();
 
 const port = process.env.PORT || 8080;
+
+// CORS configuration
+app.use(cors({
+    origin: 'http://localhost:5173', // Vite default port
+    credentials: true
+}));
 
 connectDB(process.env.MONGO_URI || '');
 app.use(express.json());
