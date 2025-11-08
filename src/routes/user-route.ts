@@ -1,6 +1,7 @@
 import { Router } from "express";
 import User from "../models/user-model";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -33,8 +34,12 @@ router.post('/sign-in', async (req, res) => {
             return res.status(400).json({ message: 'Email and password are required' ,success: false});
         }
         const user = await User.findOne({ email });
-        if (!user || user.password !== password) {
-            return res.status(401).json({ message: 'Invalid credentials' ,success: false});
+        if(!user) {
+            return res.status(400).json({ message: 'user not found' ,success: false});
+        }   
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' ,success: false});
         }
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET||"", { expiresIn: '1h' });
         res.json({ message: 'User signed in', token });
