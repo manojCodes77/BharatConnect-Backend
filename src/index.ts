@@ -12,7 +12,7 @@ const port = process.env.PORT || 8080;
 
 // CORS configuration
 app.use(cors({
-    origin: 'http://localhost:5173', // Vite default port
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true
 }));
 
