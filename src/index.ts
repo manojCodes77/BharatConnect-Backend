@@ -2,6 +2,7 @@ import express, {Express, Request, Response} from 'express';
 import cors from 'cors';
 import userRoutes from './routes/user-route';
 import postRoutes from './routes/post-route';
+import uploadRoutes from './routes/upload-route';
 import connectDB from './config/db';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(express.json());
 app.get('/', (req: Request, res: Response) => {
     res.send('Hello, world!');
 });
+app.use('/api/upload', uploadRoutes);
 app.use('/api/v1/users',userRoutes);
 app.use('/api/v1/posts',postRoutes);
 

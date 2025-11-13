@@ -29,6 +29,14 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    featuredImage: {
+        url: String,
+        publicId: String
+    },
+    images: [{
+        url: String,
+        publicId: String
+    }],
     authorId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -51,11 +59,11 @@ const postSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-    createdAt:{
+    createdAt: {
         type: Date,
         default: Date.now,
     },
-    updatedAt:{
+    updatedAt: {
         type: Date,
         default: Date.now,
     }
