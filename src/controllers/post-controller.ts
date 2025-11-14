@@ -173,10 +173,62 @@ export const UpdatePostByIdHandler: RequestHandler = async (req, res) => {
       res.status(404).json({ message: "Post not found", success: false });
       return;
     }
+
+    // Check if user is the author
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+    if (post.authorId.toString() !== userId) {
+      res.status(403).json({ message: "You can only edit your own posts", success: false });
+      return;
+    }
+
+    // Handle new image uploads if files are present
+    let newImages: { url: string; publicId: string }[] = [];
+
+    if ((req as AuthRequest).files && (req as AuthRequest).files!.length > 0) {
+      try {
+        // Delete old images from Cloudinary
+        if (post.images && post.images.length > 0) {
+          const deletePromises = post.images.map((image:any) => 
+            cloudinary.uploader.destroy(image.publicId)
+          );
+          await Promise.all(deletePromises);
+        }
+
+        // Get new uploaded images
+        newImages = (req as AuthRequest).files!.map((file: any) => ({
+          url: file.path,
+          publicId: file.filename
+        }));
+      } catch (uploadError) {
+        console.error("Error processing images:", uploadError);
+        res.status(500).json({
+          message: "Failed to process images",
+          success: false
+        });
+        return;
+      }
+    }
+
     post.title = title;
     post.content = content;
+    if (newImages.length > 0) {
+      post.images.splice(0, post.images.length, ...newImages);
+    }
+    post.updatedAt = new Date();
     await post.save();
-    res.json({ message: "Post updated successfully", success: true });
+    
+    res.json({ 
+      message: "Post updated successfully", 
+      success: true,
+      post: {
+        id: post._id,
+        title: post.title,
+        content: post.content,
+        images: post.images,
+        updatedAt: post.updatedAt
+      }
+    });
   } catch (error) {
     console.error("Error updating post:", error);
     res.status(500).json({ message: "Internal Server Error", success: false });
@@ -190,6 +242,28 @@ export const deletePostByIdHandler: RequestHandler = async (req, res) => {
       res.status(404).json({ message: "Post not found", success: false });
       return;
     }
+
+    // Check if user is the author
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+    if (post.authorId.toString() !== userId) {
+      res.status(403).json({ message: "You can only delete your own posts", success: false });
+      return;
+    }
+
+    // Delete images from Cloudinary if they exist
+    if (post.images && post.images.length > 0) {
+      try {
+        const deletePromises = post.images.map((image:any) => 
+          cloudinary.uploader.destroy(image.publicId)
+        );
+        await Promise.all(deletePromises);
+      } catch (cloudinaryError) {
+        console.error("Error deleting images from Cloudinary:", cloudinaryError);
+        // Continue with post deletion even if Cloudinary deletion fails
+      }
+    }
+
     await post.deleteOne();
     res.json({ message: "Post deleted successfully", success: true });
   } catch (error) {

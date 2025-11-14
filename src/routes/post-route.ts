@@ -16,7 +16,7 @@ router.post("/", verifyToken,upload.array('images', 5), createHandler);
 router.get("/:id", getByIdHandler);
 
 // Protected routes with parameters
-router.put("/:id", verifyToken, UpdatePostByIdHandler);
+router.put("/:id", verifyToken, upload.array('images', 5), UpdatePostByIdHandler);
 router.delete("/:id", verifyToken, deletePostByIdHandler);
 
 // Interaction routes (auth required)
