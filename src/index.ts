@@ -4,6 +4,7 @@ import userRoutes from './routes/user-route';
 import postRoutes from './routes/post-route';
 import uploadRoutes from './routes/upload-route';
 import connectDB from './config/db';
+import { verifyToken } from './routes/auth-route';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/users',userRoutes);
 app.use('/api/v1/posts',postRoutes);
+app.post('/api/v1/auth', verifyToken);
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
