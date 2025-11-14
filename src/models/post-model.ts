@@ -29,10 +29,6 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    featuredImage: {
-        url: String,
-        publicId: String
-    },
     images: [{
         url: String,
         publicId: String

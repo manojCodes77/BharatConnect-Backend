@@ -22,7 +22,7 @@ app.use(express.json());
 app.get('/', (req: Request, res: Response) => {
     res.send('Hello, world!');
 });
-app.use('/api/upload', uploadRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/users',userRoutes);
 app.use('/api/v1/posts',postRoutes);
 

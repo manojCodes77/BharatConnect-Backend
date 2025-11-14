@@ -1,6 +1,7 @@
 import { verifyToken } from "../middlewares/auth";
 import { createHandler, deletePostByIdHandler, getByIdHandler, listHandler, myPostsHandler, UpdatePostByIdHandler, likePostHandler, commentPostHandler, savePostHandler, sharePostHandler } from "../controllers/post-controller";
 import { Router } from "express";
+import upload from "../middlewares/upload";
 
 const router = Router();
 
@@ -9,7 +10,7 @@ router.get("/", listHandler);
 
 // Protected routes (auth required) - must come before /:id route
 router.get("/my-posts", verifyToken, myPostsHandler);
-router.post("/", verifyToken, createHandler);
+router.post("/", verifyToken,upload.array('images', 5), createHandler);
 
 // Public route with parameter (must come after specific routes)
 router.get("/:id", getByIdHandler);

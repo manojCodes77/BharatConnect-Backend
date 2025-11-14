@@ -1,24 +1,95 @@
 import { Request, RequestHandler } from "express";
 import Post from "../models/post-model";
 import User from "../models/user-model";
+import cloudinary from "../config/cloudinary";
 
 interface AuthRequest extends Request {
   user?: { id: string };
+  files?: Express.Multer.File[]; // Add this for TypeScript
 }
+
+// Helper function to upload buffer to cloudinary
+const uploadToCloudinary = (buffer: Buffer, folder = 'blog-images'): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: folder,
+        resource_type: 'auto',
+        transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+};
+
 export const createHandler: RequestHandler = async (req, res) => {
   try {
     const { title, content } = req.body;
+
+    // Validate required fields
     if (!title || !content) {
-      res.status(400).json({ message: "Title and content are required", success: false });
+      res.status(400).json({
+        message: "Title and content are required",
+        success: false
+      });
       return;
     }
+
     const authorId = (req as AuthRequest).user?.id;
-    const newPost = new Post({ title, content, authorId });
+
+    // Handle image uploads if files are present
+    let images: { url: string; publicId: string }[] = [];
+
+    if ((req as AuthRequest).files && (req as AuthRequest).files!.length > 0) {
+      try {
+        // Files are already uploaded to Cloudinary via multer-storage-cloudinary
+        // Extract the URLs and public IDs from the uploaded files
+        images = (req as AuthRequest).files!.map((file: any) => ({
+          url: file.path, // Cloudinary URL is stored in file.path
+          publicId: file.filename // Cloudinary public_id is stored in file.filename
+        }));
+      } catch (uploadError) {
+        console.error("Error processing images:", uploadError);
+        res.status(500).json({
+          message: "Failed to process images",
+          success: false
+        });
+        return;
+      }
+    }
+
+    // Create new post with images
+    const newPost = new Post({
+      title,
+      content,
+      authorId,
+      images // Include the uploaded images
+    });
+
     await newPost.save();
-    res.status(201).json({ message: "Post created", success: true });
+
+    res.status(201).json({
+      message: "Post created successfully",
+      success: true,
+      post: {
+        id: newPost._id,
+        title: newPost.title,
+        content: newPost.content,
+        images: newPost.images,
+        createdAt: newPost.createdAt
+      }
+    });
   } catch (error) {
     console.error("Error creating post:", error);
-    res.status(500).json({ message: "Internal Server Error", success: false });
+    res.status(500).json({
+      message: "Internal Server Error",
+      success: false
+    });
   }
 };
 
@@ -38,35 +109,35 @@ export const listHandler: RequestHandler = async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.id; // Optional for public access
-    
+
     // Pagination parameters
     const limit = parseInt(req.query.limit as string) || 10;
     const cursor = req.query.cursor as string;
-    
+
     // Build query
     let query: any = {};
-    
+
     // If authenticated, exclude user's own posts
     if (userId) {
       query.authorId = { $ne: userId };
     }
-    
+
     // Cursor-based pagination
     if (cursor) {
       query._id = { $lt: cursor };
     }
-    
+
     // Fetch posts
     const posts = await Post.find(query)
       .populate('authorId', 'name email')
       .populate('comments.userId', 'name')
       .sort({ updatedAt: -1 })
       .limit(limit + 1); // Fetch one extra to check if there are more
-    
+
     const hasMore = posts.length > limit;
     const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
     const nextCursor = hasMore ? postsToReturn[postsToReturn.length - 1]._id : null;
-    
+
     res.json({
       posts: postsToReturn,
       nextCursor,
@@ -141,7 +212,7 @@ export const likePostHandler: RequestHandler = async (req, res) => {
     }
 
     const likeIndex = post.likes.indexOf(userId as any);
-    
+
     if (likeIndex > -1) {
       // Unlike: remove user from likes array
       post.likes.splice(likeIndex, 1);
@@ -153,8 +224,8 @@ export const likePostHandler: RequestHandler = async (req, res) => {
     }
 
     await post.save();
-    
-    res.json({ 
+
+    res.json({
       message: likeIndex > -1 ? "Post unliked" : "Post liked",
       success: true,
       liked: likeIndex === -1,
@@ -188,12 +259,12 @@ export const commentPostHandler: RequestHandler = async (req, res) => {
     // Parse @mentions from text (e.g., @username)
     const mentionRegex = /@(\w+)/g;
     const mentionedUsernames = [...text.matchAll(mentionRegex)].map(match => match[1]);
-    
+
     // Find mentioned users by name (simple approach)
-    const mentionedUsers = await User.find({ 
-      name: { $in: mentionedUsernames } 
+    const mentionedUsers = await User.find({
+      name: { $in: mentionedUsernames }
     });
-    
+
     const mentionedUserIds = mentionedUsers.map(user => user._id);
 
     // Add comment to post
@@ -203,17 +274,17 @@ export const commentPostHandler: RequestHandler = async (req, res) => {
       mentions: mentionedUserIds,
       createdAt: new Date(),
     } as any);
-    
+
     post.commentsCount = post.comments.length;
     await post.save();
 
     // Populate the new comment for response
     const updatedPost = await Post.findById(postId)
       .populate('comments.userId', 'name');
-    
+
     const newComment = updatedPost!.comments[updatedPost!.comments.length - 1];
 
-    res.json({ 
+    res.json({
       message: "Comment added successfully",
       success: true,
       comment: newComment,
@@ -245,7 +316,7 @@ export const savePostHandler: RequestHandler = async (req, res) => {
     }
 
     const saveIndex = user.savedPosts.indexOf(postId as any);
-    
+
     if (saveIndex > -1) {
       // Unsave: remove post from saved array
       user.savedPosts.splice(saveIndex, 1);
@@ -255,8 +326,8 @@ export const savePostHandler: RequestHandler = async (req, res) => {
     }
 
     await user.save();
-    
-    res.json({ 
+
+    res.json({
       message: saveIndex > -1 ? "Post removed from saved" : "Post saved",
       success: true,
       saved: saveIndex === -1
@@ -280,8 +351,8 @@ export const sharePostHandler: RequestHandler = async (req, res) => {
 
     post.sharesCount += 1;
     await post.save();
-    
-    res.json({ 
+
+    res.json({
       message: "Post shared",
       success: true,
       sharesCount: post.sharesCount

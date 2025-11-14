@@ -7,10 +7,11 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
         return {
-            folder: 'blog-images',
+            folder: 'post-images',
             allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
-        };
+            transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
+            resource_type: 'auto'
+        } as any;
     }
 });
 
