@@ -436,3 +436,32 @@ export const sharePostHandler: RequestHandler = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", success: false });
   }
 };
+
+// GET SAVED POSTS HANDLER
+export const getSavedPostsHandler: RequestHandler = async (req, res) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+
+    const user = await User.findById(userId).populate({
+      path: 'savedPosts',
+      populate: [
+        { path: 'authorId', select: 'name email' },
+        { path: 'comments.userId', select: 'name' }
+      ]
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found", success: false });
+      return;
+    }
+    res.status(200).json({
+      message: "Saved posts fetched successfully",
+      savedPosts: user.savedPosts,
+      success: true
+    });
+  } catch (error) {
+    console.error("Error fetching saved posts:", error);
+    res.status(500).json({ message: "Internal Server Error", success: false });
+  }
+};
